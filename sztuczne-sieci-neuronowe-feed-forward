@@ -1,0 +1,94 @@
+#Ćwiczenie 4. Sztuczne Sieci Neuronowe typu „Feed-Forward” jako uniwersalne aproksymatory - jupyter
+
+import neurolab as nl
+import numpy as np
+
+# Create train samples
+x = np.linspace(0, 9, 20)
+y = 2. * x * np.sin(x)
+
+size = len(x)
+
+inp = x.reshape(size,1)
+tar = y.reshape(size,1)
+
+# Create network with 2 layers and random initialized
+net = nl.net.newff([[0, 9]],[5, 1])
+
+# Train network
+error = net.train(inp, tar, epochs=500, show=100, goal=0.02)
+
+# Simulate network
+out = net.sim(inp)
+
+# Plot result
+import pylab as pl
+pl.subplot(211)
+pl.plot(error)
+pl.xlabel('Epoch number')
+pl.ylabel('error (default SSE)')
+
+x2 = np.linspace(0,9,150)
+y2 = net.sim(x2.reshape(x2.size,1)).reshape(x2.size)
+
+y3 = out.reshape(size)
+
+pl.subplot(212)
+pl.plot(x2, y2, '-',x , y, '.', x, y3, 'p')
+pl.legend(['train target', 'net output'])
+pl.show()
+
+
+##############
+import pylab as pl
+import math
+
+neurons_number = [3, 5, 10, 15, 30, 50]
+functions = [nl.train.train_gd, nl.train.train_gdm, nl.train.train_gda, nl.train.train_gdx, nl.train.train_rprop]
+errors = []
+
+start = 0
+stop  = 9
+size = 20
+
+x = np.linspace(start, stop, size)
+y1 = []
+
+for fx in x:
+    y1.append(2. * (fx ** 1./3.) * math.sin(fx/10.) * math.cos(3. * fx))
+
+y1 = np.array(y1)
+wsp = np.abs(max(y1)-min(y1))
+y = y1/wsp
+
+inp = x.reshape(size, 1)
+tar = y.reshape(size, 1)
+
+for neurons in neurons_number:
+
+    error_row = []
+    for fun in functions:
+        net = nl.net.newff([[start, stop]], [neurons, 1])
+        net.trainf = fun
+        error = net.train(inp, tar, epochs=2000, show=100, goal=0.05)
+
+        error_row.append(round(sum(error), 2))
+
+        out = net.sim(inp)
+
+        x2 = np.linspace(start + 1, stop - 1, 150)
+        y2 = net.sim(x2.reshape(x2.size, 1)).reshape(x2.size)
+        y3 = out.reshape(size)
+        pl.plot(x2, y2, '-', x, y, '.', x, y3, 'p')
+        pl.legend(['wynik uczenia dla ' + str(neurons), 'wartosc rzeczywista'])
+        pl.show()
+
+    errors.append(error_row)
+
+print(errors)
+
+
+
+
+
+
