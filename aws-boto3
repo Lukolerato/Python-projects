@@ -1,0 +1,59 @@
+import boto3
+from datetime import datetime
+
+s3 = boto3.client("s3")
+bucket_name = "d-szara-bucket"
+
+def delete_objects_from_bucket(object_keys):
+    response = s3.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+                'Objects': [{
+                    'Key': key
+                } for key in object_keys]
+            })
+
+def func_1(bucket_name):
+    list_of_obj = s3.list_objects_v2(Bucket=bucket_name)['Contents']
+    dictlist = dict()
+    deletelist = []
+
+    for key in list_of_obj:
+        keys = key['Key']
+        key_path_splited = key['Key'].split('/')
+        keys = keys.replace('/' + key_path_splited[2], '')
+        key_path_splited.append(keys)
+        #print(key_path_splited)
+        date = key_path_splited[1]
+        date = datetime.strptime(date, "%Y.%m.%dT%H.%M") #obj
+
+        if key_path_splited[0] in dictlist:
+            dictlist[key_path_splited[0]].append(key_path_splited[1:])
+        else:
+            dictlist[key_path_splited[0]] = [key_path_splited[1:]]
+
+    for obj in dictlist.values():
+        for i in range(len(obj)-1):
+            if obj[i][0] < obj[i+1][0]:
+                deletelist.append(obj[i][2])
+    print(deletelist)
+    delete_objects_from_bucket(deletelist)
+    #print(list_of_obj)
+func_1(bucket_name)
+
+"""
+def func_2(bucket_name):
+    paginator = s3.get_paginator("list_objects_v2")
+    pages = paginator.paginate(Bucket=bucket_name)
+    split = []
+    files_to_delete = []
+
+    for page in pages:
+        for obj in page['Contents']:
+            split.append(obj['Key'].split('/'))
+            for arg in split:
+                print(arg)
+                date = arg[1]
+                date = datetime.strptime(date, "%Y.%m.%dT%H.%M").date()
+func_2(bucket_name)                
+"""
