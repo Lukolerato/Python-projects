@@ -1,0 +1,113 @@
+import random
+import time
+import math
+import copy
+import numpy as np
+from itertools import permutations 
+
+#generowanie losowo rozmieszczonych miast
+def rand_miasta(M):
+    rand_miasta = []
+    
+    for i in range(0,M):
+        x = random.randint(0, 100)
+        y = random.randint(0, 100)
+        rand_miasta.append((x,y))
+    return rand_miasta
+    
+#liczenie dystansu, metryka Euklidesowa
+def dystans(miasto1,miasto2):
+    return math.sqrt((miasto1[0] - miasto2[0]) * (miasto1[0] - miasto2[0]) + (miasto1[1] - miasto2[1]) * (miasto1[1] - miasto2[1]))
+    
+def brute_force(miasta):
+    liczba_mozliwych_drog = permutations(miasta)
+    koszty = []
+    
+    for x in liczba_mozliwych_drog:
+        koszt = 0
+        for i in range(1,M):
+            koszt = koszt + dystans(x[i-1], x[i])
+        koszt = koszt + dystans(x[-1], x[0])
+        koszty.append(koszt)
+    minimalny_koszt = min(koszty)
+    return minimalny_koszt
+
+def n_n(miasta):           
+    nieodwiedzone = miasta.copy()
+    lista_miast = []
+    koszt = 0
+    aktualne_miasto = nieodwiedzone[0]
+    nieodwiedzone.pop(0)
+    lista_miast.append(aktualne_miasto)
+    
+    while len(nieodwiedzone) != 0:
+        trasa = []
+        
+        for x in nieodwiedzone:
+            odległość = dystans(aktualne_miasto, x)
+            trasa.append(odległość)
+        minimalna_odległość = min(trasa)    
+        
+        for idx, x in enumerate(nieodwiedzone):
+            if trasa[idx] == minimalna_odległość:
+                aktualne_miasto = x
+                nieodwiedzone.pop(idx)
+                lista_miast.append(aktualne_miasto)
+                koszt = koszt + minimalna_odległość
+    koszt = koszt + dystans(aktualne_miasto, miasta[0])
+    return koszt
+    
+M = 5  #liczba miast
+miasta = rand_miasta(M)
+print('brute force', brute_force(miasta))
+print('n_n', n_n(miasta))
+
+def najkrotsza_droga(koszty, odwiedzone):
+    najblizsze_miasto = float('inf')
+    najblizsza_droga = None
+    
+    for miasto, dystans in koszty.items():
+        if miasto not in odwiedzone and dystans < najblizsze_miasto:
+            najblizsze_miasto = dystans
+            najblizsza_droga = miasto
+    return najblizsza_droga   
+
+
+graf = {
+    'A': {'B': 2, 'D': 4},
+    'B': {'C': 2, 'D': 3},
+    'C': {'E': 2},
+    'D': {'C': 3, 'E': 4},
+    'E': {}
+}
+
+koszty = {}
+poprzedni = {}
+
+for miasto in graf.keys():
+    koszty[miasto] = float('inf')
+    
+odwiedzone = []
+aktualny = 'A'
+koszty[aktualny] = 0
+poprzedni[aktualny] = None
+
+while aktualny:
+    for sasiedni in graf[aktualny]:
+        if koszty[sasiedni] > koszty[aktualny] + graf[aktualny][sasiedni]:
+            koszty[sasiedni] = koszty[aktualny] + graf[aktualny][sasiedni]
+            poprzedni[sasiedni] = aktualny
+    odwiedzone.append(aktualny)
+    aktualny = najkrotsza_droga(koszty, odwiedzone)
+
+    #destination, cost
+for d,c in koszty.items():
+    print(f'droga do {d} wynosi {c}')
+    
+    aktualna_dest = d
+    while poprzedni[aktualna_dest]:
+        print(aktualna_dest)
+        aktualna_dest = poprzedni[aktualna_dest]
+        
+    else: 
+        print(aktualna_dest)
