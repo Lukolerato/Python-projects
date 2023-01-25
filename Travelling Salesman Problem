@@ -111,3 +111,71 @@ for d,c in koszty.items():
         
     else: 
         print(aktualna_dest)
+        
+#Djikstra algotythm implementation
+def non_zero_min(distances):
+    minimum = max(distances)
+    index = distances.index(minimum)
+    for idx, x in enumerate(distances):
+        if x < minimum and x != 0:
+            minimum = x
+            index = idx
+
+    return index
+
+
+def dijkstra(cities):
+    Q = copy.deepcopy(cities)
+    tour = []
+
+    distances = []
+    p = []
+
+    current_city_index = 0
+
+    t0 = time.time()
+
+    for _ in Q:
+        distances.append(float('inf'))
+        p.append(-1)
+
+    tour.append(Q[0])
+    distances[current_city_index] = 0
+
+    while len(tour) < len(Q):
+        distances_to_u = []
+        for n in range(0, len(Q)):
+            distances_to_u.append(calculate_distance(Q[current_city_index], Q[n]))
+            if Q[n] in tour:
+                distances_to_u[n] = 0.0
+
+        distance_to_u = non_zero_min(distances_to_u)
+        tour.append(Q[distance_to_u])
+
+        distances_new_to_u = []
+        for n in range(0, len(Q)):
+            distances_new_to_u.append(calculate_distance(Q[distance_to_u], Q[n]))
+            if Q[n] in tour:
+                distances_new_to_u[n] = 0.0
+
+        distance_new_u = non_zero_min(distances_new_to_u)
+
+        if distances[distance_new_u] > distances_to_u[distance_to_u] + distances_new_to_u[distance_new_u]:
+            distances[distance_new_u] = distances_to_u[distance_to_u] + distances_new_to_u[distance_new_u]
+            p[distance_new_u] = distance_to_u
+
+        current_city_index = distance_to_u
+
+    dist = 0
+    previous = tour[0]
+    for city in tour:
+        dist += calculate_distance(city, previous)
+        previous = city
+
+    dist += calculate_distance(previous, cities[0])
+
+    t1 = time.time()
+
+    time1 = t1 * 1000 - t0 * 1000
+
+    return tour, time1, dist
