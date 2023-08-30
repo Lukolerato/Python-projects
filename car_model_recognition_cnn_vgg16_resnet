@@ -1,0 +1,155 @@
+from keras.preprocessing.image import ImageDataGenerator
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPool2D, Flatten, Dense, InputLayer, BatchNormalization, Dropout
+import visualkeras
+import time
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plotter_lib
+import numpy as np
+import PIL as image_lib
+import tensorflow as tflow
+from tensorflow.keras.layers import Flatten
+from keras.layers.core import Dense
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+from keras.applications import VGG16
+
+batch_size=128
+num_of_classes = 41
+
+def data_load():
+  # create a new generator
+  imagegen = ImageDataGenerator(
+      rescale=1./255, #scale images from integers 0-255 to floats 0-1.
+      shear_range=0.2,
+      zoom_range=0.2, # zoom in or out in images
+      horizontal_flip=True) #horizontal flip of images
+  
+  # load train data
+  global train 
+  train = imagegen.flow_from_directory("data/train/", class_mode="categorical", shuffle=False, batch_size=batch_size, target_size=(224, 224))
+  # load val data
+  global test 
+  test = imagegen.flow_from_directory("data/test/", class_mode="categorical", shuffle=False, batch_size=batch_size, target_size=(224, 224))
+
+def cnn_model():
+  cnn = Sequential()
+  cnn.add(InputLayer(input_shape=(224, 224, 3)))
+  
+  #Adding 1st Convolution and Pooling Layer
+  cnn.add(Conv2D(32,kernel_size=(3,3),activation='relu'))
+  cnn.add(BatchNormalization())
+  cnn.add(MaxPool2D(pool_size=(2,2)))
+  cnn.add(Dropout(0.2))
+  
+  #Adding 3rd Convolution and Pooling Layer
+  cnn.add(Conv2D(64,kernel_size=(5,5),activation='relu'))
+  cnn.add(BatchNormalization())
+  cnn.add(MaxPool2D(pool_size=(2,2)))
+  cnn.add(Dropout(0.2))
+  
+  #Adding 5th Convolution and Pooling Layer
+  cnn.add(Conv2D(128,kernel_size=(7,7),activation='relu'))
+  cnn.add(BatchNormalization())
+  cnn.add(MaxPool2D(pool_size=(2,2)))
+  cnn.add(Dropout(0.2))
+  
+  #Flatten
+  cnn.add(Flatten())
+  
+  #Adding Input and Output Layer
+  cnn.add(Dense(units=512,activation='relu'))
+  cnn.add(Dense(units=num_of_classes,activation='sigmoid'))
+  visualkeras.layered_view(cnn,legend=True)
+  cnn.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+
+def fitcnn_model(method,train,test):
+  st = time.time()
+  sum_x = 0
+  for i in range(1000000):
+      sum_x += i
+      
+  method.fit(train, steps_per_epoch=1748//batch_size, epochs=40, validation_data=test, validation_steps=1723//batch_size)
+  
+  elapsed_time = time.time() - st
+  print('Execution time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+
+def plot(history):
+  # summarize history for accuracy
+  plt.plot(history.history['accuracy'])
+  plt.plot(history.history['val_accuracy'])
+  plt.title('model accuracy')
+  plt.ylabel('accuracy')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='lower right')
+  plt.show()
+  # summarize history for loss
+  plt.plot(history.history['loss'])
+  plt.plot(history.history['val_loss'])
+  plt.title('model loss')
+  plt.ylabel('loss')
+  plt.xlabel('epoch')
+  plt.legend(['train', 'test'], loc='upper right')
+  plt.show()
+
+def resNet_model():
+  resnet_model = Sequential()
+
+  pretrained_model= tflow.keras.applications.ResNet50(include_top=False,
+                     input_shape=(224,224,3),
+                     pooling='avg',classes=41,
+                     weights='imagenet')
+  
+  for each_layer in pretrained_model.layers:
+          each_layer.trainable=False
+  
+  resnet_model.add(pretrained_model)
+  resnet_model.add(Flatten())
+  resnet_model.add(Dense(512, activation='relu'))
+  resnet_model.add(Dense(41, activation='softmax'))
+  resnet_model.compile(optimizer='adam',loss='categorical_crossentropy',metrics=['accuracy'])
+
+def fitresNet_model(method, train, test):
+  st = time.time()
+  sum_x = 0
+  for i in range(1000000):
+      sum_x += i
+      
+  method.fit(train, validation_data=test, epochs=40)
+  
+  elapsed_time = time.time() - st
+  print('Execution time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+
+def vgg16_model():
+
+  vgg16_model = Sequential()
+  vgg16_model.add(Flatten(input_shape=(4,4,512)))
+  vgg16_model.add(Dense(512, activation='relu'))
+  vgg16_model.add(Dropout(0.5))
+  vgg16_model.add(BatchNormalization())
+  vgg16_model.add(Dense(41, activation='softmax'))
+
+  # compile the model
+  vgg16_model.compile(optimizer='adam', metrics=['accuracy'], loss='categorical_crossentropy')
+  vgg16_model.summary()
+  
+def fitvgg16_model(method, train,test):
+  pretrained_model= VGG16(include_top=False, weights='imagenet')
+  pretrained_model.summary()
+  vgg_features_train = pretrained_model.predict(train)
+  vgg_features_test = pretrained_model.predict(test)
+  train_target = to_categorical(train.labels)
+  test_target = to_categorical(test.labels)
+  # train model using features generated from VGG16 model
+  method.fit(vgg_features_train, train_target, epochs=40, batch_size=128, validation_data=(vgg_features_test, test_target))
+  
+data_load()
+  
+cnn = fitcnn_model(cnn_model,train,test)
+plot(cnn)
+
+resNet = fitresNet_model(resNet_model,train,test)
+plot(resNet)
+
+vgg16 = fitvgg16_model(vgg16_model,test,train)
+plot(vgg16)
