@@ -8,3 +8,10 @@ _Dominika Szaradowska_
 4. Po zakończeniu usuwania krawędzi → naciskasz ENTER,
 5. Klikasz na punkt startowy (źródłowy) → program uruchamia Dijkstrę i podświetla najkrótsze ścieżki (czerwone),
 6. Wyniki są również wypisane w konsoli.
+
+
+
+
+#### Potrzebne do uruchomienia
+pip install matplotlib networkx numpy
+pip install pyqt5
